@@ -53,9 +53,58 @@
 
       #ui-container { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 20px; box-sizing: border-box; z-index: 30; pointer-events: none; }
       .btn { width: 65px; height: 65px; border-radius: 50%; background: rgba(0, 0, 0, 0.75); color: #ffd700; border: 2px solid #ffd700; font-weight: bold; pointer-events: auto; outline: none; font-size: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 8px rgba(255, 215, 0, 0.2); }
+
+      /* --- LANDSCAPE & FULLSCREEN OVERLAY STYLES --- */
+      #orientation-overlay {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        background: #0d1117;
+        color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        text-align: center;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      #orientation-overlay .phone-icon {
+        width: 60px; height: 60px;
+        border: 3px solid #ffffff;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        animation: rotate-phone 2s infinite ease-in-out;
+      }
+      @keyframes rotate-phone {
+        0% { transform: rotate(0deg); }
+        50% { transform: rotate(-90deg); }
+        100% { transform: rotate(-90deg); }
+      }
+      #start-btn {
+        margin-top: 15px;
+        padding: 12px 24px;
+        font-size: 16px;
+        font-weight: bold;
+        color: #0d1117;
+        background: #00ff00;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        display: none;
+      }
     </style>
   </head>
   <body>
+
+    <!-- Landscape Lock & Fullscreen Start Overlay -->
+    <div id="orientation-overlay">
+      <div class="phone-icon"></div>
+      <h2 id="overlay-text">Please Rotate Device to Landscape</h2>
+      <p id="overlay-subtext">Game requires landscape orientation for optimal controls.</p>
+      <button id="start-btn">ENTER FULLSCREEN GAME</button>
+    </div>
 
     <div id="compass-bar-container">
       <div id="compass-center-indicator"></div>
@@ -137,6 +186,58 @@
     </a-scene>
 
     <script>
+      // --- LANDSCAPE & FULLSCREEN ENFORCEMENT LOGIC ---
+      const overlay = document.getElementById('orientation-overlay');
+      const overlayText = document.getElementById('overlay-text');
+      const overlaySubtext = document.getElementById('overlay-subtext');
+      const startBtn = document.getElementById('start-btn');
+
+      function requestFullscreenAndLock() {
+        const docEl = document.documentElement;
+        if (docEl.requestFullscreen) {
+          docEl.requestFullscreen();
+        } else if (docEl.webkitRequestFullscreen) {
+          docEl.webkitRequestFullscreen();
+        } else if (docEl.msRequestFullscreen) {
+          docEl.msRequestFullscreen();
+        }
+
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch((err) => {
+            console.warn('Orientation lock failed:', err);
+          });
+        }
+      }
+
+      function checkOrientation() {
+        const isLandscape = window.innerWidth > window.innerHeight;
+        
+        if (isLandscape) {
+          overlayText.innerText = "Ready to Play!";
+          overlaySubtext.innerText = "Tap below to enter fullscreen and lock mode.";
+          startBtn.style.display = "block";
+          
+          if (document.fullscreenElement || document.webkitFullscreenElement) {
+            overlay.style.display = "none";
+          }
+        } else {
+          overlay.style.display = "flex";
+          overlayText.innerText = "Please Rotate Device to Landscape";
+          overlaySubtext.innerText = "Game requires landscape orientation for optimal controls.";
+          startBtn.style.display = "none";
+        }
+      }
+
+      startBtn.addEventListener('click', () => {
+        requestFullscreenAndLock();
+        overlay.style.display = "none";
+      });
+
+      window.addEventListener('resize', checkOrientation);
+      window.addEventListener('orientationchange', checkOrientation);
+      checkOrientation();
+
+      // --- GAME SCRIPT ---
       let npcData = [];
       let activeNpc = null;
 
@@ -171,12 +272,14 @@
                 npcData.push({ el: patrickEl, type: 'agency', name: 'Patrick (Workers Agency)', desc: 'Hire new farm workers.' });
               }
 
+              // Assigned Farmer precisely to Animal Merchant Node
               if (node.name === 'Animals_Merchant_🧑‍🌾' && animalsEl) {
                 const pos = new THREE.Vector3(); node.getWorldPosition(pos);
                 animalsEl.setAttribute('position', `${pos.x} ${pos.y} ${pos.z}`);
                 npcData.push({ el: animalsEl, type: 'animals', name: 'Animal Merchant', desc: 'I buy and trade farm animals.' });
               }
 
+              // Assigned Dorcas precisely to Fruit Merchant Node
               if (node.name === 'Fruit_Merchant_🧑‍🌾' && fruitEl) {
                 const pos = new THREE.Vector3(); node.getWorldPosition(pos);
                 fruitEl.setAttribute('position', `${pos.x} ${pos.y} ${pos.z}`);
