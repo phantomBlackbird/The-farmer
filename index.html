@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>The Farmer - Orchard & Pen Population Test</title>
+    <title>The Farmer - NPCs & Economy</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.1/nipplejs.min.js"></script>
@@ -31,6 +31,26 @@
       #minimap-canvas, #minimap-overlay { width: 100%; height: 100%; display: block; position: absolute; top: 0; left: 0; }
       #minimap-overlay { z-index: 2; pointer-events: none; }
 
+      /* --- INTERACTION PROMPT & MODAL --- */
+      #interaction-prompt {
+        position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
+        background: rgba(5, 20, 30, 0.9); border: 2px solid #ffd700; color: #ffd700; padding: 10px 20px;
+        border-radius: 25px; font-size: 16px; font-weight: bold; z-index: 40; display: none; cursor: pointer;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); align-items: center; gap: 10px; pointer-events: auto;
+      }
+
+      #dialogue-modal {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 320px; background: rgba(5, 20, 30, 0.95); border: 2px solid #00f3ff; border-radius: 12px;
+        padding: 20px; z-index: 150; display: none; flex-direction: column; gap: 15px; box-shadow: 0 0 25px rgba(0, 243, 255, 0.7);
+        color: white; font-family: sans-serif;
+      }
+      #dialogue-modal h3 { margin: 0 0 5px 0; color: #00f3ff; font-size: 18px; }
+      #dialogue-modal p { margin: 0; font-size: 14px; color: #ccc; }
+      .modal-btn { background: rgba(0, 243, 255, 0.2); border: 1px solid #00f3ff; color: white; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; text-align: center; }
+      .modal-btn:hover { background: rgba(0, 243, 255, 0.5); }
+      .modal-close { background: rgba(255, 51, 51, 0.8); border: none; color: white; padding: 6px; border-radius: 6px; cursor: pointer; text-align: center; }
+
       #ui-container { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 20px; box-sizing: border-box; z-index: 30; pointer-events: none; }
       .btn { width: 65px; height: 65px; border-radius: 50%; background: rgba(0, 0, 0, 0.75); color: #ffd700; border: 2px solid #ffd700; font-weight: bold; pointer-events: auto; outline: none; font-size: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 8px rgba(255, 215, 0, 0.2); }
       #crosshair { position: absolute; top: 50%; left: 50%; width: 24px; height: 24px; transform: translate(-50%, -50%); pointer-events: none; z-index: 11; border: 2px solid #ffd700; border-radius: 50%; box-sizing: border-box; }
@@ -47,6 +67,17 @@
       <div id="map-close-btn"><i class="fa-solid fa-xmark"></i></div>
       <canvas id="minimap-canvas" width="300" height="300"></canvas>
       <canvas id="minimap-overlay" width="300" height="300"></canvas>
+    </div>
+
+    <!-- INTERACTION UI -->
+    <div id="interaction-prompt"><i class="fa-solid fa-comments"></i> Tap to Interact</div>
+
+    <div id="dialogue-modal">
+      <h3 id="modal-title">Merchant</h3>
+      <p id="modal-desc">Welcome to my station!</p>
+      <div class="modal-btn" id="btn-check-value">Check Product Value</div>
+      <div class="modal-btn" id="btn-sell-product">Sell Current Product</div>
+      <div class="modal-close" id="modal-close">Close</div>
     </div>
 
     <div id="crosshair"></div>
@@ -69,16 +100,23 @@
       <a-light type="ambient" intensity="0.85"></a-light>
       <a-light type="directional" position="5 15 5" intensity="1.0"></a-light>
 
-      <!-- FARM MAP ENVIRONMENT WITH ORCHARD & PEN POPULATOR -->
+      <!-- FARM MAP ENVIRONMENT (All Nodes Intact) -->
       <a-entity id="world" 
                 gltf-model="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/Farm%201.glb" 
                 class="environment" 
                 position="0 0 0" 
-                node-populator>
+                node-initializer>
       </a-entity>
 
-      <!-- DYNAMIC POPULATION CONTAINER -->
-      <a-entity id="populated-nature-container"></a-entity>
+      <!-- NPC CONTAINER -->
+      <a-entity id="npcs-container">
+        <!-- Businessman Patrick at Node B -->
+        <a-entity id="npc-patrick" gltf-model="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/BusinessMan-v1.glb" animation-mixer="clip: Idle_1; loop: repeat"></a-entity>
+        <!-- Farmer Nathaniel at Node Animals_Merchant -->
+        <a-entity id="npc-animals" gltf-model="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/Farmer-v1.glb" animation-mixer="clip: Idle_1; loop: repeat"></a-entity>
+        <!-- Dorcas at Node Fruit_Merchant -->
+        <a-entity id="npc-fruit" gltf-model="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/AnimatedWoman-nIItLV9nxS-v1.glb" animation-mixer="clip: Idle_1; loop: repeat"></a-entity>
+      </a-entity>
 
       <!-- PLAYER RIG (Nathaniel / Farmer) -->
       <a-entity id="rig" position="0 0.5 0">
@@ -102,40 +140,27 @@
     </a-scene>
 
     <script>
-      AFRAME.registerComponent('node-populator', {
+      let npcData = [];
+      let activeNpc = null;
+
+      AFRAME.registerComponent('node-initializer', {
         init: function () {
           let executed = false;
 
-          const runPopulation = () => {
+          const runInit = () => {
             if (executed) return;
             const mesh = this.el.getObject3D('mesh');
             const rigEl = document.querySelector('#rig');
-            const container = document.querySelector('#populated-nature-container');
 
             if (!mesh) return;
             executed = true;
 
-            // Asset URLs
-            const redAppleUrl = 'https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/nature/My%20tree.glb';
-            const pine1Url = 'https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/nature/Pine-Zt62gceKXZ.glb';
-            const pine2Url = 'https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/nature/Pine-rfnxJv0Rqa.glb';
-
-            // Nodes to Hide & Populate
-            const pinePenNodes = [
-              'Deer_pen_1', 'Deer_pen_2', 'Deer_pen_3', 'Deer_pen_4',
-              'Cow_pen_2', 'Cow_pen_3', 'Cow_pen_4', 'Cow_pen_5',
-              'Bull_pen', 'Donkey_pen',
-              'Green_apple_trees_1', 'Green_apple_trees_2'
-            ];
-
-            const redAppleNodes = [
-              'Red_Apple_trees_1', 'Red_Apple_trees_2'
-            ];
-
             let spawnPosSet = false;
+            const patrickEl = document.querySelector('#npc-patrick');
+            const animalsEl = document.querySelector('#npc-animals');
+            const fruitEl = document.querySelector('#npc-fruit');
 
             mesh.traverse((node) => {
-              // Spawn player at Node 'AC'
               if (node.name === 'AC' && !spawnPosSet && rigEl) {
                 const worldPos = new THREE.Vector3();
                 node.getWorldPosition(worldPos);
@@ -143,53 +168,28 @@
                 spawnPosSet = true;
               }
 
-              // Hide specified pen/green apple nodes & populate with Pine trees (15 each)
-              if (pinePenNodes.some(name => node.name.includes(name))) {
-                node.visible = false;
-                const center = new THREE.Vector3();
-                node.getWorldPosition(center);
-                
-                for (let i = 0; i < 15; i++) {
-                  const tree = document.createElement('a-entity');
-                  const url = Math.random() > 0.5 ? pine1Url : pine2Url;
-                  const offsetX = (Math.random() - 0.5) * 8;
-                  const offsetZ = (Math.random() - 0.5) * 8;
-                  const scale = 0.8 + Math.random() * 0.4;
-                  const rotY = Math.random() * 360;
-
-                  tree.setAttribute('gltf-model', url);
-                  tree.setAttribute('position', `${center.x + offsetX} ${center.y} ${center.z + offsetZ}`);
-                  tree.setAttribute('scale', `${scale} ${scale} ${scale}`);
-                  tree.setAttribute('rotation', `0 ${rotY} 0`);
-                  container.appendChild(tree);
-                }
+              if (node.name === 'B' && patrickEl) {
+                const pos = new THREE.Vector3(); node.getWorldPosition(pos);
+                patrickEl.setAttribute('position', `${pos.x} ${pos.y} ${pos.z}`);
+                npcData.push({ el: patrickEl, type: 'agency', name: 'Patrick (Workers Agency)', desc: 'Hire new farm workers.' });
               }
 
-              // Hide Red Apple nodes & populate with Red Apple trees (15 each)
-              if (redAppleNodes.some(name => node.name.includes(name))) {
-                node.visible = false;
-                const center = new THREE.Vector3();
-                node.getWorldPosition(center);
+              if (node.name === 'Animals_Merchant_🧑‍🌾' && animalsEl) {
+                const pos = new THREE.Vector3(); node.getWorldPosition(pos);
+                animalsEl.setAttribute('position', `${pos.x} ${pos.y} ${pos.z}`);
+                npcData.push({ el: animalsEl, type: 'animals', name: 'Animal Merchant', desc: 'I buy and trade farm animals.' });
+              }
 
-                for (let i = 0; i < 15; i++) {
-                  const tree = document.createElement('a-entity');
-                  const offsetX = (Math.random() - 0.5) * 8;
-                  const offsetZ = (Math.random() - 0.5) * 8;
-                  const scale = 0.8 + Math.random() * 0.4;
-                  const rotY = Math.random() * 360;
-
-                  tree.setAttribute('gltf-model', redAppleUrl);
-                  tree.setAttribute('position', `${center.x + offsetX} ${center.y} ${center.z + offsetZ}`);
-                  tree.setAttribute('scale', `${scale} ${scale} ${scale}`);
-                  tree.setAttribute('rotation', `0 ${rotY} 0`);
-                  container.appendChild(tree);
-                }
+              if (node.name === 'Fruit_Merchant_🧑‍🌾' && fruitEl) {
+                const pos = new THREE.Vector3(); node.getWorldPosition(pos);
+                fruitEl.setAttribute('position', `${pos.x} ${pos.y} ${pos.z}`);
+                npcData.push({ el: fruitEl, type: 'fruit', name: 'Fruit Merchant (Dorcas)', desc: 'I buy fresh orchard fruits.' });
               }
             });
           };
 
-          this.el.addEventListener('model-loaded', runPopulation);
-          setTimeout(runPopulation, 3000); // safety fallback
+          this.el.addEventListener('model-loaded', runInit);
+          setTimeout(runInit, 3000);
         }
       });
 
@@ -199,6 +199,8 @@
       const btnPunch = document.querySelector('#btn-punch');
       const btnInteract = document.querySelector('#btn-interact');
       const minimapRig = document.querySelector('#minimap-rig');
+      const interactionPrompt = document.getElementById('interaction-prompt');
+      const dialogueModal = document.getElementById('dialogue-modal');
       
       let mX = 0, mZ = 0, vY = 0, gr = true, isBusy = false;
       let currentClip = 'Idle_1';
@@ -326,7 +328,45 @@
       }
 
       btnPunch.addEventListener('touchstart', (e) => { e.preventDefault(); if (!isBusy) playAnim('Punch_Right', 'once', 700); });
-      btnInteract.addEventListener('touchstart', (e) => { e.preventDefault(); if (!isBusy) playAnim('Interaction', 'once', 1000); });
+      
+      // Interaction Prompt Logic
+      const openDialogue = () => {
+        if (!activeNpc) return;
+        document.getElementById('modal-title').innerText = activeNpc.name;
+        document.getElementById('modal-desc').innerText = activeNpc.desc;
+        
+        const sellBtn = document.getElementById('btn-sell-product');
+        if (activeNpc.type === 'agency') {
+          sellBtn.innerText = 'Employ New Workers';
+        } else if (activeNpc.type === 'animals') {
+          sellBtn.innerText = 'Sell Animals Only';
+        } else {
+          sellBtn.innerText = 'Sell Fruit Only';
+        }
+
+        dialogueModal.style.display = 'flex';
+        activeNpc.el.setAttribute('animation-mixer', 'clip: Interaction; loop: repeat');
+      };
+
+      interactionPrompt.addEventListener('click', openDialogue);
+      btnInteract.addEventListener('click', openDialogue);
+
+      document.getElementById('modal-close').addEventListener('click', () => {
+        dialogueModal.style.display = 'none';
+        if (activeNpc) activeNpc.el.setAttribute('animation-mixer', 'clip: Idle_1; loop: repeat');
+      });
+
+      document.getElementById('btn-check-value').addEventListener('click', () => {
+        alert('Checking product values in your inventory...');
+      });
+
+      document.getElementById('btn-sell-product').addEventListener('click', () => {
+        if (activeNpc.type === 'agency') {
+          alert('Opening Workers Agency recruitment panel!');
+        } else {
+          alert(`Selling items to ${activeNpc.name}!`);
+        }
+      });
 
       AFRAME.registerComponent('third-person-camera', {
         init: function () {
@@ -387,7 +427,7 @@
       })
       .on('end', () => { mX = 0; mZ = 0; if (gr && !isBusy) resetDefaultState(); });
 
-      // Physics
+      // Physics & Proximity Check
       const downRay = new THREE.Raycaster();
       const frontRay = new THREE.Raycaster();
 
@@ -418,6 +458,28 @@
         if (curr.y <= floorY) { curr.y = floorY; vY = 0; gr = true; } else { gr = false; }
 
         rig.setAttribute('position', curr);
+
+        // Check NPC Proximity (3 meters threshold)
+        let foundNpc = null;
+        npcData.forEach(npc => {
+          const pos = npc.el.getAttribute('position');
+          if (pos) {
+            const dist = new THREE.Vector3(curr.x, curr.y, curr.z).distanceTo(new THREE.Vector3(pos.x, pos.y, pos.z));
+            if (dist < 3.0) {
+              foundNpc = npc;
+            }
+          }
+        });
+
+        if (foundNpc) {
+          activeNpc = foundNpc;
+          interactionPrompt.style.display = 'flex';
+        } else {
+          if (dialogueModal.style.display !== 'flex') {
+            activeNpc = null;
+            interactionPrompt.style.display = 'none';
+          }
+        }
 
         let heading = (camRotY % 360 + 360) % 360;
         const pxPerDeg = 30 / 15;
