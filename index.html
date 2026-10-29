@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>The Farmer - Test Build</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.1/nipplejs.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <style>
+      body { touch-action: none; user-select: none; overflow: hidden; margin: 0; background: #87CEEB; font-family: sans-serif; }
+      
+      /* --- FADED BAR COMPASS --- */
+      #compass-bar-container {
+        position: absolute;
+        top: 15px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 380px;
+        height: 36px;
+        background: rgba(5, 20, 30, 0.6);
+        border: 1px solid rgba(0, 243, 255, 0.4);
+        border-radius: 4px;
+        z-index: 30;
+        pointer-events: none;
+        overflow: hidden;
+        -webkit-mask-image: linear-gradient(to right, transparent 0%, black 18%, black 82%, transparent 100%);
+        mask-image: linear-gradient(to right, transparent 0%, black 18%, black 82%, transparent 100%);
+        box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.2);
+      }
+
+      #compass-ticks {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+        transition: transform 0.05s linear;
+      }
+
+      .compass-mark {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        width: 30px;
+        color: #ffd700;
+        font-size: 10px;
+        font-weight: bold;
+      }
+
+      .compass-line {
+        width: 1px;
+        height: 10px;
+        background: #ffd700;
+        margin-top: 2px;
+      }
+
+      #compass-center-indicator {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 2px;
+        height: 100%;
+        background: #ff3333;
+        box-shadow: 0 0 6px #ff3333;
+        z-index: 31;
+      }
+
+      /* --- LIVE 3D RENDER MINI-MAP & EXPANDED MAP --- */
+      #minimap-container {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 130px;
+        height: 130px;
+        background: rgba(5, 20, 30, 0.95);
+        border: 2px solid #00f3ff;
+        border-radius: 12px;
+        box-shadow: 0 0 12px rgba(0, 243, 255, 0.5);
+        z-index: 30;
+        pointer-events: auto;
+        cursor: pointer;
+        overflow: hidden;
+        transition: all 0.3s ease;
+      }
+
+      #minimap-container.fullscreen {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 85vw;
+        height: 85vh;
+        max-width: 650px;
+        max-height: 650px;
+        border-radius: 18px;
+        z-index: 100;
+        box-shadow: 0 0 35px rgba(0, 243, 255, 0.8);
+      }
+
+      #map-close-btn {
+        display: none;
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 36px;
+        height: 36px;
+        background: rgba(255, 51, 51, 0.8);
+        border: 1px solid #fff;
+        border-radius: 50%;
+        color: white;
+        font-size: 18px;
+        align-items: center;
+        justify-content: center;
+        z-index: 101;
+        cursor: pointer;
+      }
+
+      #minimap-canvas, #minimap-overlay {
+        width: 100%;
+        height: 100%;
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      #minimap-overlay { z-index: 2; pointer-events: none; }
+
+      /* --- ACTION BUTTONS --- */
+      #ui-container { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 20px; box-sizing: border-box; z-index: 30; pointer-events: none; }
+      .btn { width: 65px; height: 65px; border-radius: 50%; background: rgba(0, 0, 0, 0.75); color: #ffd700; border: 2px solid #ffd700; font-weight: bold; pointer-events: auto; outline: none; font-size: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 8px rgba(255, 215, 0, 0.2); }
+      
+      #crosshair { position: absolute; top: 50%; left: 50%; width: 24px; height: 24px; transform: translate(-50%, -50%); pointer-events: none; z-index: 11; border: 2px solid #ffd700; border-radius: 50%; box-sizing: border-box; }
+    </style>
+  </head>
+  <body>
+
+    <!-- BAR COMPASS -->
+    <div id="compass-bar-container">
+      <div id="compass-center-indicator"></div>
+      <div id="compass-ticks"></div>
+    </div>
+
+    <!-- MINI-MAP / EXPANDABLE FULLSCREEN MAP -->
+    <div id="minimap-container">
+      <div id="map-close-btn"><i class="fa-solid fa-xmark"></i></div>
+      <canvas id="minimap-canvas" width="300" height="300"></canvas>
+      <canvas id="minimap-overlay" width="300" height="300"></canvas>
+    </div>
+
+    <div id="crosshair"></div>
+
+    <div id="ui-container">
+      <div id="joystick-zone" style="width:120px; height:120px; pointer-events:auto;"></div>
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
+        <div style="display:flex; gap:10px;">
+          <button class="btn" id="btn-interact"><i class="fa-solid fa-hand"></i></button>
+          <button class="btn" id="btn-punch"><i class="fa-solid fa-hand-fist"></i></button>
+        </div>
+        <div style="display:flex; gap:10px; align-items: flex-end;">
+          <button class="btn" id="btn-jump"><i class="fa-solid fa-chevron-up"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <a-scene vr-mode-ui="enabled: false">
+      <a-assets>
+        <a-asset-item id="farmer-model" src="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/Farmer-v1.glb"></a-asset-item>
+        <a-asset-item id="farm-world" src="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/Farm%201.glb"></a-asset-item>
+      </a-assets>
+
+      <a-sky color="#87CEEB"></a-sky>
+      <a-light type="ambient" intensity="0.85"></a-light>
+      <a-light type="directional" position="5 15 5" intensity="1.0"></a-light>
+
+      <!-- FARM MAP ENVIRONMENT -->
+      <a-entity id="world" gltf-model="#farm-world" class="environment" position="0 0 0" node-spawner="targetNode: AC"></a-entity>
+
+      <!-- PLAYER RIG (Nathaniel / Farmer) -->
+      <a-entity id="rig" position="0 0.5 0">
+        <a-entity id="player-model" gltf-model="#farmer-model" position="0 0 0" rotation="0 180 0" scale="1 1 1"
+                  animation-mixer="clip: Idle_1; loop: repeat"></a-entity>
+        <a-entity id="cam-pivot" third-person-camera>
+          <a-entity id="camera" camera="fov: 75" position="0 2.2 4.0" rotation="-8 0 0"></a-entity>
+        </a-entity>
+      </a-entity>
+
+      <!-- MAP CAMERA RIG -->
+      <a-entity id="minimap-rig" position="0 100 0" rotation="-90 0 0">
+        <a-entity id="map-camera" camera="orthographic: true; near: 0.1; far: 300; left: -30; right: 30; top: 30; bottom: -30"></a-entity>
+      </a-entity>
+
+    </a-scene>
+
+    <script>
+      // Component to locate Node 'AC' in Farm 1.glb and position player rig there
+      AFRAME.registerComponent('node-spawner', {
+        schema: { targetNode: { type: 'string', default: 'AC' } },
+        init: function () {
+          this.el.addEventListener('model-loaded', () => {
+            const mesh = this.el.getObject3D('mesh');
+            let foundNode = null;
+
+            mesh.traverse((node) => {
+              if (node.name === this.data.targetNode) {
+                foundNode = node;
+              }
+            });
+
+            const rigEl = document.querySelector('#rig');
+            if (foundNode && rigEl) {
+              const worldPos = new THREE.Vector3();
+              foundNode.getWorldPosition(worldPos);
+              rigEl.setAttribute('position', `${worldPos.x} ${worldPos.y + 0.1} ${worldPos.z}`);
+              console.log(`Successfully spawned Farmer at Node '${this.data.targetNode}' position:`, worldPos);
+            } else {
+              console.warn(`Node '${this.data.targetNode}' not found in model hierarchy. Defaulting to (0, 0.5, 0).`);
+            }
+          });
+        }
+      });
+
+      const rig = document.querySelector('#rig');
+      const playerModel = document.querySelector('#player-model');
+      const camPivot = document.querySelector('#cam-pivot');
+      const btnPunch = document.querySelector('#btn-punch');
+      const btnInteract = document.querySelector('#btn-interact');
+      const minimapRig = document.querySelector('#minimap-rig');
+      
+      let mX = 0, mZ = 0, vY = 0, gr = true, isBusy = false;
+      let currentClip = 'Idle_1';
+      let isMapFullscreen = false;
+
+      // --- COMPASS BAR ---
+      const compassTicksEl = document.getElementById('compass-ticks');
+      const dirs = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' };
+      for (let pass = 0; pass < 3; pass++) {
+        for (let i = 0; i < 360; i += 15) {
+          const mark = document.createElement('div');
+          mark.className = 'compass-mark';
+          const txt = dirs[i] ? dirs[i] : i;
+          mark.innerHTML = `<span>${txt}</span><div class="compass-line"></div>`;
+          compassTicksEl.appendChild(mark);
+        }
+      }
+
+      // --- FULLSCREEN MAP TOGGLE ---
+      const mapContainer = document.getElementById('minimap-container');
+      const mapCloseBtn = document.getElementById('map-close-btn');
+
+      mapContainer.addEventListener('click', () => {
+        if (!isMapFullscreen) {
+          isMapFullscreen = true;
+          mapContainer.classList.add('fullscreen');
+          mapCloseBtn.style.display = 'flex';
+        }
+      });
+
+      mapCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        isMapFullscreen = false;
+        mapContainer.classList.remove('fullscreen');
+        mapCloseBtn.style.display = 'none';
+      });
+
+      // --- LIVE 3D MINIMAP ---
+      const mapCanvas = document.getElementById('minimap-canvas');
+      const overlayCanvas = document.getElementById('minimap-overlay');
+      const overlayCtx = overlayCanvas.getContext('2d');
+
+      function renderLiveMinimap(playerPos, camRotY) {
+        const sceneEl = document.querySelector('a-scene');
+        if (sceneEl && sceneEl.renderer) {
+          const mapCamEl = document.querySelector('#map-camera');
+          if (mapCamEl && mapCamEl.getObject3D('camera')) {
+            const mapCam = mapCamEl.getObject3D('camera');
+            const zoomRadius = isMapFullscreen ? 120 : 25;
+
+            if (isMapFullscreen) {
+              minimapRig.setAttribute('position', `0 150 0`);
+              minimapRig.setAttribute('rotation', `-90 0 0`);
+            } else {
+              minimapRig.setAttribute('position', `${playerPos.x} 90 ${playerPos.z}`);
+              minimapRig.setAttribute('rotation', `-90 ${camRotY} 0`);
+            }
+
+            mapCam.left = -zoomRadius; mapCam.right = zoomRadius;
+            mapCam.top = zoomRadius; mapCam.bottom = -zoomRadius;
+            mapCam.aspect = 1.0;
+            mapCam.updateProjectionMatrix();
+
+            const renderSize = isMapFullscreen ? 600 : 300;
+            if (mapCanvas.width !== renderSize) {
+              mapCanvas.width = renderSize; mapCanvas.height = renderSize;
+              overlayCanvas.width = renderSize; overlayCanvas.height = renderSize;
+            }
+
+            const renderer = sceneEl.renderer;
+            const currentScissorTest = renderer.getScissorTest();
+            const currentViewport = new THREE.Vector4();
+            renderer.getViewport(currentViewport);
+
+            renderer.setViewport(0, 0, renderSize, renderSize);
+            renderer.setScissor(0, 0, renderSize, renderSize);
+            renderer.setScissorTest(true);
+            renderer.render(sceneEl.object3D, mapCam);
+
+            const destCtx = mapCanvas.getContext('2d');
+            destCtx.clearRect(0, 0, renderSize, renderSize);
+            destCtx.drawImage(renderer.domElement, 0, 0, renderSize, renderSize, 0, 0, renderSize, renderSize);
+
+            renderer.setViewport(currentViewport);
+            renderer.setScissorTest(currentScissorTest);
+          }
+        }
+
+        const canvasSize = overlayCanvas.width;
+        overlayCtx.clearRect(0, 0, canvasSize, canvasSize);
+
+        const px = canvasSize / 2;
+        const pz = canvasSize / 2;
+
+        overlayCtx.save();
+        overlayCtx.translate(px, pz);
+        overlayCtx.fillStyle = 'rgba(0, 243, 255, 0.35)';
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(0, 0);
+        overlayCtx.arc(0, 0, isMapFullscreen ? 30 : 50, -Math.PI / 4 - Math.PI / 2, Math.PI / 4 - Math.PI / 2);
+        overlayCtx.closePath();
+        overlayCtx.fill();
+        overlayCtx.restore();
+
+        overlayCtx.fillStyle = '#00ff66';
+        overlayCtx.shadowColor = '#00ff66';
+        overlayCtx.shadowBlur = 8;
+        overlayCtx.beginPath();
+        overlayCtx.arc(px, pz, 6, 0, Math.PI * 2);
+        overlayCtx.fill();
+        overlayCtx.shadowBlur = 0;
+      }
+
+      // --- ANIMATIONS ---
+      function playAnim(clipName, loopMode = 'repeat', timeOut = 0) {
+        if (currentClip === clipName && loopMode === 'repeat' && !isBusy) return;
+        playerModel.removeAttribute('animation-mixer');
+        requestAnimationFrame(() => {
+          playerModel.setAttribute('animation-mixer', { clip: clipName, loop: loopMode });
+          currentClip = clipName;
+        });
+
+        if (timeOut > 0) {
+          isBusy = true;
+          setTimeout(() => { isBusy = false; resetDefaultState(); }, timeOut);
+        }
+      }
+
+      function resetDefaultState() {
+        if (isBusy) return;
+        (mX !== 0 || mZ !== 0) ? playAnim('Run_Forward', 'repeat') : playAnim('Idle_1', 'repeat');
+      }
+
+      btnPunch.addEventListener('touchstart', (e) => { e.preventDefault(); if (!isBusy) playAnim('Punch_Right', 'once', 700); });
+      btnInteract.addEventListener('touchstart', (e) => { e.preventDefault(); if (!isBusy) playAnim('Interaction', 'once', 1000); });
+
+      // --- CAMERA ROTATION ---
+      AFRAME.registerComponent('third-person-camera', {
+        init: function () {
+          this.rotX = -8; this.rotY = 0;
+          this.touchIdentifier = null; this.startX = 0; this.startY = 0;
+          const joystickZone = document.getElementById('joystick-zone');
+
+          window.addEventListener('touchstart', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+              const touch = e.changedTouches[i];
+              const rect = joystickZone.getBoundingClientRect();
+              const insideJoystick = touch.clientX >= rect.left && touch.clientX <= rect.right && touch.clientY >= rect.top && touch.clientY <= rect.bottom;
+
+              if (!insideJoystick && this.touchIdentifier === null) {
+                this.touchIdentifier = touch.identifier;
+                this.startX = touch.pageX; this.startY = touch.pageY;
+                break;
+              }
+            }
+          });
+
+          window.addEventListener('touchmove', (e) => {
+            if (this.touchIdentifier === null) return;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+              const touch = e.changedTouches[i];
+              if (touch.identifier === this.touchIdentifier) {
+                const deltaX = touch.pageX - this.startX;
+                const deltaY = touch.pageY - this.startY;
+
+                this.rotY -= deltaX * 0.4;
+                this.rotX -= deltaY * 0.3;
+                this.rotX = Math.max(-40, Math.min(25, this.rotX));
+
+                this.startX = touch.pageX; this.startY = touch.pageY;
+                this.el.setAttribute('rotation', `${this.rotX} ${this.rotY} 0`);
+                break;
+              }
+            }
+          });
+
+          const handleTouchEnd = (e) => {
+            if (this.touchIdentifier === null) return;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+              if (e.changedTouches[i].identifier === this.touchIdentifier) { this.touchIdentifier = null; break; }
+            }
+          };
+          window.addEventListener('touchend', handleTouchEnd);
+          window.addEventListener('touchcancel', handleTouchEnd);
+        }
+      });
+
+      document.querySelector('#btn-jump').addEventListener('touchstart', (e) => { 
+        e.preventDefault();
+        if (gr) { vY = 0.25; gr = false; playAnim('Right_Kick', 'once', 800); } 
+      });
+
+      nipplejs.create({ zone: document.getElementById('joystick-zone'), mode: 'static', position: {left: '70px', bottom: '70px'}, color: '#ffd700' })
+      .on('move', (e, d) => { 
+        mZ = (d.vector.y * -1) * 0.12; mX = d.vector.x * 0.12; 
+        if (gr && !isBusy) playAnim('Run_Forward', 'repeat');
+      })
+      .on('end', () => { mX = 0; mZ = 0; if (gr && !isBusy) resetDefaultState(); });
+
+      // --- PHYSICS & COLLISION ENGINE ---
+      const downRay = new THREE.Raycaster();
+      const frontRay = new THREE.Raycaster();
+
+      function physics() {
+        const curr = rig.getAttribute('position');
+        const envObjects = Array.from(document.querySelectorAll('.environment')).map(el => el.getObject3D('mesh')).filter(m => m);
+
+        const camRotY = camPivot.getAttribute('rotation').y;
+        const radY = camRotY * (Math.PI / 180);
+        const stepX = mZ * Math.sin(radY) + mX * Math.cos(radY);
+        const stepZ = mZ * Math.cos(radY) - mX * Math.sin(radY);
+
+        let finalX = stepX; let finalZ = stepZ;
+
+        if (envObjects.length > 0 && (mX !== 0 || mZ !== 0)) {
+          frontRay.set(new THREE.Vector3(curr.x, curr.y + 0.5, curr.z), new THREE.Vector3(finalX, 0, finalZ).normalize());
+          const wallHits = frontRay.intersectObjects(envObjects, true);
+          if (wallHits.length > 0 && wallHits[0].distance < 0.6) { finalX = 0; finalZ = 0; }
+          playerModel.object3D.rotation.y = Math.atan2(finalX, finalZ);
+        }
+
+        curr.x += finalX; curr.z += finalZ;
+        downRay.set(new THREE.Vector3(curr.x, curr.y + 2, curr.z), new THREE.Vector3(0, -1, 0));
+        const groundHits = downRay.intersectObjects(envObjects, true);
+        let floorY = 0; if (groundHits.length > 0) floorY = groundHits[0].point.y;
+
+        vY -= 0.015; curr.y += vY;
+        if (curr.y <= floorY) { curr.y = floorY; vY = 0; gr = true; } else { gr = false; }
+
+        rig.setAttribute('position', curr);
+
+        let heading = (camRotY % 360 + 360) % 360;
+        const pxPerDeg = 30 / 15;
+        const offset = (360 * pxPerDeg) + (heading * pxPerDeg) - 190;
+        compassTicksEl.style.transform = `translateX(${-offset}px)`;
+
+        renderLiveMinimap(curr, camRotY);
+
+        requestAnimationFrame(physics);
+      }
+
+      physics();
+    </script>
+  </body>
+</html>
