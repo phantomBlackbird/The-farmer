@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>The Farmer - Test Build</title>
+    <title>The Farmer - Orchard & Pen Population Test</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.1/nipplejs.min.js"></script>
@@ -10,141 +10,39 @@
     <style>
       body { touch-action: none; user-select: none; overflow: hidden; margin: 0; background: #87CEEB; font-family: sans-serif; }
       
-      /* --- FADED BAR COMPASS --- */
       #compass-bar-container {
-        position: absolute;
-        top: 15px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 380px;
-        height: 36px;
-        background: rgba(5, 20, 30, 0.6);
-        border: 1px solid rgba(0, 243, 255, 0.4);
-        border-radius: 4px;
-        z-index: 30;
-        pointer-events: none;
-        overflow: hidden;
+        position: absolute; top: 15px; left: 50%; transform: translateX(-50%); width: 380px; height: 36px;
+        background: rgba(5, 20, 30, 0.6); border: 1px solid rgba(0, 243, 255, 0.4); border-radius: 4px; z-index: 30; pointer-events: none; overflow: hidden;
         -webkit-mask-image: linear-gradient(to right, transparent 0%, black 18%, black 82%, transparent 100%);
         mask-image: linear-gradient(to right, transparent 0%, black 18%, black 82%, transparent 100%);
         box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.2);
       }
+      #compass-ticks { position: absolute; top: 0; left: 0; height: 100%; display: flex; align-items: center; white-space: nowrap; transition: transform 0.05s linear; }
+      .compass-mark { display: inline-flex; flex-direction: column; align-items: center; width: 30px; color: #ffd700; font-size: 10px; font-weight: bold; }
+      .compass-line { width: 1px; height: 10px; background: #ffd700; margin-top: 2px; }
+      #compass-center-indicator { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background: #ff3333; box-shadow: 0 0 6px #ff3333; z-index: 31; }
 
-      #compass-ticks {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        white-space: nowrap;
-        transition: transform 0.05s linear;
-      }
-
-      .compass-mark {
-        display: inline-flex;
-        flex-direction: column;
-        align-items: center;
-        width: 30px;
-        color: #ffd700;
-        font-size: 10px;
-        font-weight: bold;
-      }
-
-      .compass-line {
-        width: 1px;
-        height: 10px;
-        background: #ffd700;
-        margin-top: 2px;
-      }
-
-      #compass-center-indicator {
-        position: absolute;
-        top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 2px;
-        height: 100%;
-        background: #ff3333;
-        box-shadow: 0 0 6px #ff3333;
-        z-index: 31;
-      }
-
-      /* --- LIVE 3D RENDER MINI-MAP & EXPANDED MAP --- */
       #minimap-container {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        width: 130px;
-        height: 130px;
-        background: rgba(5, 20, 30, 0.95);
-        border: 2px solid #00f3ff;
-        border-radius: 12px;
-        box-shadow: 0 0 12px rgba(0, 243, 255, 0.5);
-        z-index: 30;
-        pointer-events: auto;
-        cursor: pointer;
-        overflow: hidden;
-        transition: all 0.3s ease;
+        position: absolute; top: 12px; right: 12px; width: 130px; height: 130px; background: rgba(5, 20, 30, 0.95);
+        border: 2px solid #00f3ff; border-radius: 12px; box-shadow: 0 0 12px rgba(0, 243, 255, 0.5); z-index: 30; pointer-events: auto; cursor: pointer; overflow: hidden; transition: all 0.3s ease;
       }
-
-      #minimap-container.fullscreen {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 85vw;
-        height: 85vh;
-        max-width: 650px;
-        max-height: 650px;
-        border-radius: 18px;
-        z-index: 100;
-        box-shadow: 0 0 35px rgba(0, 243, 255, 0.8);
-      }
-
-      #map-close-btn {
-        display: none;
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        width: 36px;
-        height: 36px;
-        background: rgba(255, 51, 51, 0.8);
-        border: 1px solid #fff;
-        border-radius: 50%;
-        color: white;
-        font-size: 18px;
-        align-items: center;
-        justify-content: center;
-        z-index: 101;
-        cursor: pointer;
-      }
-
-      #minimap-canvas, #minimap-overlay {
-        width: 100%;
-        height: 100%;
-        display: block;
-        position: absolute;
-        top: 0;
-        left: 0;
-      }
+      #minimap-container.fullscreen { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85vw; height: 85vh; max-width: 650px; max-height: 650px; border-radius: 18px; z-index: 100; box-shadow: 0 0 35px rgba(0, 243, 255, 0.8); }
+      #map-close-btn { display: none; position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; background: rgba(255, 51, 51, 0.8); border: 1px solid #fff; border-radius: 50%; color: white; font-size: 18px; align-items: center; justify-content: center; z-index: 101; cursor: pointer; }
+      #minimap-canvas, #minimap-overlay { width: 100%; height: 100%; display: block; position: absolute; top: 0; left: 0; }
       #minimap-overlay { z-index: 2; pointer-events: none; }
 
-      /* --- ACTION BUTTONS --- */
       #ui-container { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 20px; box-sizing: border-box; z-index: 30; pointer-events: none; }
       .btn { width: 65px; height: 65px; border-radius: 50%; background: rgba(0, 0, 0, 0.75); color: #ffd700; border: 2px solid #ffd700; font-weight: bold; pointer-events: auto; outline: none; font-size: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 8px rgba(255, 215, 0, 0.2); }
-      
       #crosshair { position: absolute; top: 50%; left: 50%; width: 24px; height: 24px; transform: translate(-50%, -50%); pointer-events: none; z-index: 11; border: 2px solid #ffd700; border-radius: 50%; box-sizing: border-box; }
     </style>
   </head>
   <body>
 
-    <!-- BAR COMPASS -->
     <div id="compass-bar-container">
       <div id="compass-center-indicator"></div>
       <div id="compass-ticks"></div>
     </div>
 
-    <!-- MINI-MAP / EXPANDABLE FULLSCREEN MAP -->
     <div id="minimap-container">
       <div id="map-close-btn"><i class="fa-solid fa-xmark"></i></div>
       <canvas id="minimap-canvas" width="300" height="300"></canvas>
@@ -166,23 +64,31 @@
       </div>
     </div>
 
-    <a-scene vr-mode-ui="enabled: false">
-      <a-assets>
-        <a-asset-item id="farmer-model" src="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/Farmer-v1.glb"></a-asset-item>
-        <a-asset-item id="farm-world" src="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/Farm%201.glb"></a-asset-item>
-      </a-assets>
-
+    <a-scene loading-screen="enabled: false" vr-mode-ui="enabled: false">
       <a-sky color="#87CEEB"></a-sky>
       <a-light type="ambient" intensity="0.85"></a-light>
       <a-light type="directional" position="5 15 5" intensity="1.0"></a-light>
 
-      <!-- FARM MAP ENVIRONMENT -->
-      <a-entity id="world" gltf-model="#farm-world" class="environment" position="0 0 0" node-spawner="targetNode: AC"></a-entity>
+      <!-- FARM MAP ENVIRONMENT WITH ORCHARD & PEN POPULATOR -->
+      <a-entity id="world" 
+                gltf-model="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/Farm%201.glb" 
+                class="environment" 
+                position="0 0 0" 
+                node-populator>
+      </a-entity>
+
+      <!-- DYNAMIC POPULATION CONTAINER -->
+      <a-entity id="populated-nature-container"></a-entity>
 
       <!-- PLAYER RIG (Nathaniel / Farmer) -->
       <a-entity id="rig" position="0 0.5 0">
-        <a-entity id="player-model" gltf-model="#farmer-model" position="0 0 0" rotation="0 180 0" scale="1 1 1"
-                  animation-mixer="clip: Idle_1; loop: repeat"></a-entity>
+        <a-entity id="player-model" 
+                  gltf-model="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/Farmer-v1.glb" 
+                  position="0 0 0" 
+                  rotation="0 180 0" 
+                  scale="1 1 1"
+                  animation-mixer="clip: Idle_1; loop: repeat">
+        </a-entity>
         <a-entity id="cam-pivot" third-person-camera>
           <a-entity id="camera" camera="fov: 75" position="0 2.2 4.0" rotation="-8 0 0"></a-entity>
         </a-entity>
@@ -196,30 +102,94 @@
     </a-scene>
 
     <script>
-      // Component to locate Node 'AC' in Farm 1.glb and position player rig there
-      AFRAME.registerComponent('node-spawner', {
-        schema: { targetNode: { type: 'string', default: 'AC' } },
+      AFRAME.registerComponent('node-populator', {
         init: function () {
-          this.el.addEventListener('model-loaded', () => {
+          let executed = false;
+
+          const runPopulation = () => {
+            if (executed) return;
             const mesh = this.el.getObject3D('mesh');
-            let foundNode = null;
+            const rigEl = document.querySelector('#rig');
+            const container = document.querySelector('#populated-nature-container');
+
+            if (!mesh) return;
+            executed = true;
+
+            // Asset URLs
+            const redAppleUrl = 'https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/nature/My%20tree.glb';
+            const pine1Url = 'https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/nature/Pine-Zt62gceKXZ.glb';
+            const pine2Url = 'https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/nature/Pine-rfnxJv0Rqa.glb';
+
+            // Nodes to Hide & Populate
+            const pinePenNodes = [
+              'Deer_pen_1', 'Deer_pen_2', 'Deer_pen_3', 'Deer_pen_4',
+              'Cow_pen_2', 'Cow_pen_3', 'Cow_pen_4', 'Cow_pen_5',
+              'Bull_pen', 'Donkey_pen',
+              'Green_apple_trees_1', 'Green_apple_trees_2'
+            ];
+
+            const redAppleNodes = [
+              'Red_Apple_trees_1', 'Red_Apple_trees_2'
+            ];
+
+            let spawnPosSet = false;
 
             mesh.traverse((node) => {
-              if (node.name === this.data.targetNode) {
-                foundNode = node;
+              // Spawn player at Node 'AC'
+              if (node.name === 'AC' && !spawnPosSet && rigEl) {
+                const worldPos = new THREE.Vector3();
+                node.getWorldPosition(worldPos);
+                rigEl.setAttribute('position', `${worldPos.x} ${worldPos.y + 0.1} ${worldPos.z}`);
+                spawnPosSet = true;
+              }
+
+              // Hide specified pen/green apple nodes & populate with Pine trees (15 each)
+              if (pinePenNodes.some(name => node.name.includes(name))) {
+                node.visible = false;
+                const center = new THREE.Vector3();
+                node.getWorldPosition(center);
+                
+                for (let i = 0; i < 15; i++) {
+                  const tree = document.createElement('a-entity');
+                  const url = Math.random() > 0.5 ? pine1Url : pine2Url;
+                  const offsetX = (Math.random() - 0.5) * 8;
+                  const offsetZ = (Math.random() - 0.5) * 8;
+                  const scale = 0.8 + Math.random() * 0.4;
+                  const rotY = Math.random() * 360;
+
+                  tree.setAttribute('gltf-model', url);
+                  tree.setAttribute('position', `${center.x + offsetX} ${center.y} ${center.z + offsetZ}`);
+                  tree.setAttribute('scale', `${scale} ${scale} ${scale}`);
+                  tree.setAttribute('rotation', `0 ${rotY} 0`);
+                  container.appendChild(tree);
+                }
+              }
+
+              // Hide Red Apple nodes & populate with Red Apple trees (15 each)
+              if (redAppleNodes.some(name => node.name.includes(name))) {
+                node.visible = false;
+                const center = new THREE.Vector3();
+                node.getWorldPosition(center);
+
+                for (let i = 0; i < 15; i++) {
+                  const tree = document.createElement('a-entity');
+                  const offsetX = (Math.random() - 0.5) * 8;
+                  const offsetZ = (Math.random() - 0.5) * 8;
+                  const scale = 0.8 + Math.random() * 0.4;
+                  const rotY = Math.random() * 360;
+
+                  tree.setAttribute('gltf-model', redAppleUrl);
+                  tree.setAttribute('position', `${center.x + offsetX} ${center.y} ${center.z + offsetZ}`);
+                  tree.setAttribute('scale', `${scale} ${scale} ${scale}`);
+                  tree.setAttribute('rotation', `0 ${rotY} 0`);
+                  container.appendChild(tree);
+                }
               }
             });
+          };
 
-            const rigEl = document.querySelector('#rig');
-            if (foundNode && rigEl) {
-              const worldPos = new THREE.Vector3();
-              foundNode.getWorldPosition(worldPos);
-              rigEl.setAttribute('position', `${worldPos.x} ${worldPos.y + 0.1} ${worldPos.z}`);
-              console.log(`Successfully spawned Farmer at Node '${this.data.targetNode}' position:`, worldPos);
-            } else {
-              console.warn(`Node '${this.data.targetNode}' not found in model hierarchy. Defaulting to (0, 0.5, 0).`);
-            }
-          });
+          this.el.addEventListener('model-loaded', runPopulation);
+          setTimeout(runPopulation, 3000); // safety fallback
         }
       });
 
@@ -234,31 +204,26 @@
       let currentClip = 'Idle_1';
       let isMapFullscreen = false;
 
-      // --- COMPASS BAR ---
+      // Compass Ticks
       const compassTicksEl = document.getElementById('compass-ticks');
       const dirs = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' };
       for (let pass = 0; pass < 3; pass++) {
         for (let i = 0; i < 360; i += 15) {
           const mark = document.createElement('div');
           mark.className = 'compass-mark';
-          const txt = dirs[i] ? dirs[i] : i;
-          mark.innerHTML = `<span>${txt}</span><div class="compass-line"></div>`;
+          mark.innerHTML = `<span>${dirs[i] || i}</span><div class="compass-line"></div>`;
           compassTicksEl.appendChild(mark);
         }
       }
 
-      // --- FULLSCREEN MAP TOGGLE ---
+      // Minimap Fullscreen Toggle
       const mapContainer = document.getElementById('minimap-container');
       const mapCloseBtn = document.getElementById('map-close-btn');
-
       mapContainer.addEventListener('click', () => {
-        if (!isMapFullscreen) {
-          isMapFullscreen = true;
-          mapContainer.classList.add('fullscreen');
-          mapCloseBtn.style.display = 'flex';
-        }
+        isMapFullscreen = true;
+        mapContainer.classList.add('fullscreen');
+        mapCloseBtn.style.display = 'flex';
       });
-
       mapCloseBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         isMapFullscreen = false;
@@ -266,7 +231,7 @@
         mapCloseBtn.style.display = 'none';
       });
 
-      // --- LIVE 3D MINIMAP ---
+      // Live Minimap Render
       const mapCanvas = document.getElementById('minimap-canvas');
       const overlayCanvas = document.getElementById('minimap-overlay');
       const overlayCtx = overlayCanvas.getContext('2d');
@@ -319,9 +284,7 @@
 
         const canvasSize = overlayCanvas.width;
         overlayCtx.clearRect(0, 0, canvasSize, canvasSize);
-
-        const px = canvasSize / 2;
-        const pz = canvasSize / 2;
+        const px = canvasSize / 2, pz = canvasSize / 2;
 
         overlayCtx.save();
         overlayCtx.translate(px, pz);
@@ -342,7 +305,7 @@
         overlayCtx.shadowBlur = 0;
       }
 
-      // --- ANIMATIONS ---
+      // Animations & Controls
       function playAnim(clipName, loopMode = 'repeat', timeOut = 0) {
         if (currentClip === clipName && loopMode === 'repeat' && !isBusy) return;
         playerModel.removeAttribute('animation-mixer');
@@ -365,7 +328,6 @@
       btnPunch.addEventListener('touchstart', (e) => { e.preventDefault(); if (!isBusy) playAnim('Punch_Right', 'once', 700); });
       btnInteract.addEventListener('touchstart', (e) => { e.preventDefault(); if (!isBusy) playAnim('Interaction', 'once', 1000); });
 
-      // --- CAMERA ROTATION ---
       AFRAME.registerComponent('third-person-camera', {
         init: function () {
           this.rotX = -8; this.rotY = 0;
@@ -376,9 +338,8 @@
             for (let i = 0; i < e.changedTouches.length; i++) {
               const touch = e.changedTouches[i];
               const rect = joystickZone.getBoundingClientRect();
-              const insideJoystick = touch.clientX >= rect.left && touch.clientX <= rect.right && touch.clientY >= rect.top && touch.clientY <= rect.bottom;
-
-              if (!insideJoystick && this.touchIdentifier === null) {
+              if (touch.clientX >= rect.left && touch.clientX <= rect.right && touch.clientY >= rect.top && touch.clientY <= rect.bottom) continue;
+              if (this.touchIdentifier === null) {
                 this.touchIdentifier = touch.identifier;
                 this.startX = touch.pageX; this.startY = touch.pageY;
                 break;
@@ -393,11 +354,9 @@
               if (touch.identifier === this.touchIdentifier) {
                 const deltaX = touch.pageX - this.startX;
                 const deltaY = touch.pageY - this.startY;
-
                 this.rotY -= deltaX * 0.4;
                 this.rotX -= deltaY * 0.3;
                 this.rotX = Math.max(-40, Math.min(25, this.rotX));
-
                 this.startX = touch.pageX; this.startY = touch.pageY;
                 this.el.setAttribute('rotation', `${this.rotX} ${this.rotY} 0`);
                 break;
@@ -428,7 +387,7 @@
       })
       .on('end', () => { mX = 0; mZ = 0; if (gr && !isBusy) resetDefaultState(); });
 
-      // --- PHYSICS & COLLISION ENGINE ---
+      // Physics
       const downRay = new THREE.Raycaster();
       const frontRay = new THREE.Raycaster();
 
