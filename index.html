@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>The Farmer - NPCs & Economy</title>
+    <title>The Farmer - Economy & Workers</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.1/nipplejs.min.js"></script>
@@ -22,8 +22,17 @@
       .compass-line { width: 1px; height: 10px; background: #ffd700; margin-top: 2px; }
       #compass-center-indicator { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background: #ff3333; box-shadow: 0 0 6px #ff3333; z-index: 31; }
 
+      /* --- CURRENCY HUD (Placed in Highlighted Zones) --- */
+      #currency-hud {
+        position: absolute; top: 15px; left: 20px; right: 20px; display: flex; justify-content: space-between; pointer-events: none; z-index: 32;
+      }
+      .currency-badge {
+        background: rgba(5, 20, 30, 0.85); border: 1px solid #ffd700; padding: 6px 12px; border-radius: 20px;
+        color: #ffd700; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+      }
+
       #minimap-container {
-        position: absolute; top: 12px; right: 12px; width: 130px; height: 130px; background: rgba(5, 20, 30, 0.95);
+        position: absolute; top: 60px; right: 12px; width: 130px; height: 130px; background: rgba(5, 20, 30, 0.95);
         border: 2px solid #00f3ff; border-radius: 12px; box-shadow: 0 0 12px rgba(0, 243, 255, 0.5); z-index: 30; pointer-events: auto; cursor: pointer; overflow: hidden; transition: all 0.3s ease;
       }
       #minimap-container.fullscreen { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85vw; height: 85vh; max-width: 650px; max-height: 650px; border-radius: 18px; z-index: 100; box-shadow: 0 0 35px rgba(0, 243, 255, 0.8); }
@@ -31,19 +40,19 @@
       #minimap-canvas, #minimap-overlay { width: 100%; height: 100%; display: block; position: absolute; top: 0; left: 0; }
       #minimap-overlay { z-index: 2; pointer-events: none; }
 
-      /* --- RELOCATED INTERACTION UI (Top-Left Highlight Box Zone) --- */
+      /* --- INTERACTION UI (Top-Left Highlight Box Zone) --- */
       #interaction-prompt {
-        position: absolute; top: 18px; left: 18px;
+        position: absolute; top: 65px; left: 18px;
         background: rgba(5, 20, 30, 0.9); border: 2px solid #ffd700; color: #ffd700; padding: 10px 20px;
         border-radius: 25px; font-size: 15px; font-weight: bold; z-index: 40; display: none; cursor: pointer;
         box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); align-items: center; gap: 10px; pointer-events: auto;
       }
 
       #dialogue-modal {
-        position: absolute; top: 70px; left: 18px;
-        width: 300px; background: rgba(5, 20, 30, 0.95); border: 2px solid #00f3ff; border-radius: 12px;
-        padding: 15px; z-index: 150; display: none; flex-direction: column; gap: 12px; box-shadow: 0 0 25px rgba(0, 243, 255, 0.7);
-        color: white; font-family: sans-serif; pointer-events: auto;
+        position: absolute; top: 120px; left: 18px;
+        width: 320px; background: rgba(5, 20, 30, 0.95); border: 2px solid #00f3ff; border-radius: 12px;
+        padding: 15px; z-index: 150; display: none; flex-direction: column; gap: 10px; box-shadow: 0 0 25px rgba(0, 243, 255, 0.7);
+        color: white; font-family: sans-serif; pointer-events: auto; max-height: 70vh; overflow-y: auto;
       }
       #dialogue-modal h3 { margin: 0 0 3px 0; color: #00f3ff; font-size: 16px; }
       #dialogue-modal p { margin: 0; font-size: 13px; color: #ccc; }
@@ -56,44 +65,14 @@
 
       /* --- LANDSCAPE & FULLSCREEN OVERLAY STYLES --- */
       #orientation-overlay {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100vw; height: 100vh;
-        background: #0d1117;
-        color: #ffffff;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        text-align: center;
-        padding: 20px;
-        box-sizing: border-box;
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0d1117; color: #ffffff;
+        display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; text-align: center; padding: 20px; box-sizing: border-box;
       }
       #orientation-overlay .phone-icon {
-        width: 60px; height: 60px;
-        border: 3px solid #ffffff;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        animation: rotate-phone 2s infinite ease-in-out;
+        width: 60px; height: 60px; border: 3px solid #ffffff; border-radius: 10px; margin-bottom: 20px; animation: rotate-phone 2s infinite ease-in-out;
       }
-      @keyframes rotate-phone {
-        0% { transform: rotate(0deg); }
-        50% { transform: rotate(-90deg); }
-        100% { transform: rotate(-90deg); }
-      }
-      #start-btn {
-        margin-top: 15px;
-        padding: 12px 24px;
-        font-size: 16px;
-        font-weight: bold;
-        color: #0d1117;
-        background: #00ff00;
-        border: none;
-        border-radius: 25px;
-        cursor: pointer;
-        display: none;
-      }
+      @keyframes rotate-phone { 0% { transform: rotate(0deg); } 50% { transform: rotate(-90deg); } 100% { transform: rotate(-90deg); } }
+      #start-btn { margin-top: 15px; padding: 12px 24px; font-size: 16px; font-weight: bold; color: #0d1117; background: #00ff00; border: none; border-radius: 25px; cursor: pointer; display: none; }
     </style>
   </head>
   <body>
@@ -104,6 +83,15 @@
       <h2 id="overlay-text">Please Rotate Device to Landscape</h2>
       <p id="overlay-subtext">Game requires landscape orientation for optimal controls.</p>
       <button id="start-btn">ENTER FULLSCREEN GAME</button>
+    </div>
+
+    <!-- CURRENCY HUD -->
+    <div id="currency-hud">
+      <div style="display:flex; gap:10px;">
+        <div class="currency-badge"><i class="fa-solid fa-coins"></i> <span id="coins-val">150</span></div>
+        <div class="currency-badge"><i class="fa-solid fa-gem"></i> <span id="diamonds-val">50</span></div>
+      </div>
+      <div></div>
     </div>
 
     <div id="compass-bar-container">
@@ -123,8 +111,10 @@
     <div id="dialogue-modal">
       <h3 id="modal-title">Merchant</h3>
       <p id="modal-desc">Welcome to my station!</p>
-      <div class="modal-btn" id="btn-check-value">Check Product Value</div>
-      <div class="modal-btn" id="btn-sell-product">Sell Current Product</div>
+      <div id="modal-actions" style="display:flex; flex-direction:column; gap:8px;">
+        <div class="modal-btn" id="btn-action-1">Check Product Value</div>
+        <div class="modal-btn" id="btn-action-2">Sell Product</div>
+      </div>
       <div class="modal-close" id="modal-close">Close</div>
     </div>
 
@@ -158,11 +148,12 @@
       <a-entity id="npcs-container">
         <!-- Businessman Patrick at Node B -->
         <a-entity id="npc-patrick" gltf-model="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/BusinessMan-v1.glb" animation-mixer="clip: Idle_1; loop: repeat"></a-entity>
-        <!-- Farmer Nathaniel at Node Animals_Merchant -->
-        <a-entity id="npc-animals" gltf-model="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/Farmer-v1.glb" animation-mixer="clip: Idle_1; loop: repeat"></a-entity>
-        <!-- Dorcas at Node Fruit_Merchant -->
+        <!-- Dorcas precisely at Fruit Merchant Node -->
         <a-entity id="npc-fruit" gltf-model="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/AnimatedWoman-nIItLV9nxS-v1.glb" animation-mixer="clip: Idle_1; loop: repeat"></a-entity>
       </a-entity>
+
+      <!-- WORKERS CONTAINER -->
+      <a-entity id="workers-container"></a-entity>
 
       <!-- PLAYER RIG (Nathaniel / Farmer) -->
       <a-entity id="rig" position="0 0.5 0">
@@ -186,6 +177,16 @@
     </a-scene>
 
     <script>
+      // --- ECONOMY & GAME STATE ---
+      let coins = 150;
+      let diamonds = 50;
+      let workers = []; // Array of worker objects: { id, level, el }
+
+      function updateCurrencyUI() {
+        document.getElementById('coins-val').innerText = coins;
+        document.getElementById('diamonds-val').innerText = diamonds;
+      }
+
       // --- LANDSCAPE & FULLSCREEN ENFORCEMENT LOGIC ---
       const overlay = document.getElementById('orientation-overlay');
       const overlayText = document.getElementById('overlay-text');
@@ -194,32 +195,20 @@
 
       function requestFullscreenAndLock() {
         const docEl = document.documentElement;
-        if (docEl.requestFullscreen) {
-          docEl.requestFullscreen();
-        } else if (docEl.webkitRequestFullscreen) {
-          docEl.webkitRequestFullscreen();
-        } else if (docEl.msRequestFullscreen) {
-          docEl.msRequestFullscreen();
-        }
-
+        if (docEl.requestFullscreen) docEl.requestFullscreen();
+        else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
         if (screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock('landscape').catch((err) => {
-            console.warn('Orientation lock failed:', err);
-          });
+          screen.orientation.lock('landscape').catch((err) => console.warn('Orientation lock failed:', err));
         }
       }
 
       function checkOrientation() {
         const isLandscape = window.innerWidth > window.innerHeight;
-        
         if (isLandscape) {
           overlayText.innerText = "Ready to Play!";
           overlaySubtext.innerText = "Tap below to enter fullscreen and lock mode.";
           startBtn.style.display = "block";
-          
-          if (document.fullscreenElement || document.webkitFullscreenElement) {
-            overlay.style.display = "none";
-          }
+          if (document.fullscreenElement || document.webkitFullscreenElement) overlay.style.display = "none";
         } else {
           overlay.style.display = "flex";
           overlayText.innerText = "Please Rotate Device to Landscape";
@@ -228,11 +217,7 @@
         }
       }
 
-      startBtn.addEventListener('click', () => {
-        requestFullscreenAndLock();
-        overlay.style.display = "none";
-      });
-
+      startBtn.addEventListener('click', () => { requestFullscreenAndLock(); overlay.style.display = "none"; });
       window.addEventListener('resize', checkOrientation);
       window.addEventListener('orientationchange', checkOrientation);
       checkOrientation();
@@ -255,7 +240,6 @@
 
             let spawnPosSet = false;
             const patrickEl = document.querySelector('#npc-patrick');
-            const animalsEl = document.querySelector('#npc-animals');
             const fruitEl = document.querySelector('#npc-fruit');
 
             mesh.traverse((node) => {
@@ -269,17 +253,10 @@
               if (node.name === 'B' && patrickEl) {
                 const pos = new THREE.Vector3(); node.getWorldPosition(pos);
                 patrickEl.setAttribute('position', `${pos.x} ${pos.y} ${pos.z}`);
-                npcData.push({ el: patrickEl, type: 'agency', name: 'Patrick (Workers Agency)', desc: 'Hire new farm workers.' });
+                npcData.push({ el: patrickEl, type: 'agency', name: 'Patrick (Workers Agency)', desc: 'Hire, level up, and pay your farm workers.' });
               }
 
-              // Assigned Farmer precisely to Animal Merchant Node
-              if (node.name === 'Animals_Merchant_🧑‍🌾' && animalsEl) {
-                const pos = new THREE.Vector3(); node.getWorldPosition(pos);
-                animalsEl.setAttribute('position', `${pos.x} ${pos.y} ${pos.z}`);
-                npcData.push({ el: animalsEl, type: 'animals', name: 'Animal Merchant', desc: 'I buy and trade farm animals.' });
-              }
-
-              // Assigned Dorcas precisely to Fruit Merchant Node
+              // Snapping Dorcas perfectly to Fruit Merchant Node
               if (node.name === 'Fruit_Merchant_🧑‍🌾' && fruitEl) {
                 const pos = new THREE.Vector3(); node.getWorldPosition(pos);
                 fruitEl.setAttribute('position', `${pos.x} ${pos.y} ${pos.z}`);
@@ -429,24 +406,93 @@
 
       btnPunch.addEventListener('touchstart', (e) => { e.preventDefault(); if (!isBusy) playAnim('Punch_Right', 'once', 700); });
       
-      // Interaction Prompt Logic
+      // Interaction Prompt Logic & Dynamic Modal Buttons
       const openDialogue = () => {
         if (!activeNpc) return;
         document.getElementById('modal-title').innerText = activeNpc.name;
         document.getElementById('modal-desc').innerText = activeNpc.desc;
         
-        const sellBtn = document.getElementById('btn-sell-product');
+        const actionContainer = document.getElementById('modal-actions');
+        actionContainer.innerHTML = '';
+
         if (activeNpc.type === 'agency') {
-          sellBtn.innerText = 'Employ New Workers';
-        } else if (activeNpc.type === 'animals') {
-          sellBtn.innerText = 'Sell Animals Only';
+          actionContainer.innerHTML = `
+            <div class="modal-btn" id="btn-hire">Employ Worker (Cost: 10 💎)</div>
+            <div class="modal-btn" id="btn-upgrade">Upgrade Worker Lvl (Cost: 20 💎)</div>
+            <div class="modal-btn" id="btn-pay">Pay Workers Wages (Coins 🪙)</div>
+          `;
+          document.getElementById('btn-hire').addEventListener('click', hireWorker);
+          document.getElementById('btn-upgrade').addEventListener('click', upgradeWorker);
+          document.getElementById('btn-pay').addEventListener('click', payWorkers);
         } else {
-          sellBtn.innerText = 'Sell Fruit Only';
+          actionContainer.innerHTML = `
+            <div class="modal-btn" id="btn-check">Check Fruit Value</div>
+            <div class="modal-btn" id="btn-sell">Sell Stored Fruit</div>
+          `;
+          document.getElementById('btn-check').addEventListener('click', () => alert('Fruit current market value: 15 coins each.'));
+          document.getElementById('btn-sell').addEventListener('click', () => {
+            alert('Sold harvested fruit from store for coins!');
+            coins += 50; updateCurrencyUI();
+          });
         }
 
         dialogueModal.style.display = 'flex';
         activeNpc.el.setAttribute('animation-mixer', 'clip: Interaction; loop: repeat');
       };
+
+      // Worker management actions
+      function hireWorker() {
+        if (diamonds >= 10) {
+          diamonds -= 10;
+          updateCurrencyUI();
+          const workerId = workers.length + 1;
+          const workerEl = document.createElement('a-entity');
+          workerEl.setAttribute('gltf-model', 'https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/Worker-v1%20(1).glb');
+          
+          // Place near Patrick's node (Node B)
+          const patrickPos = document.querySelector('#npc-patrick').getAttribute('position');
+          const offsetX = (Math.random() - 0.5) * 4;
+          const offsetZ = (Math.random() - 0.5) * 4;
+          workerEl.setAttribute('position', `${patrickPos.x + offsetX} ${patrickPos.y} ${patrickPos.z + offsetZ}`);
+          workerEl.setAttribute('animation-mixer', 'clip: Idle_1; loop: repeat');
+          document.querySelector('#workers-container').appendChild(workerEl);
+
+          workers.push({ id: workerId, level: 1, el: workerEl, unpaidCycles: 0 });
+          alert(`Successfully hired Worker #${workerId} (Level 1)!`);
+        } else {
+          alert('Not enough Diamonds! You need 10 diamonds to hire.');
+        }
+      }
+
+      function upgradeWorker() {
+        if (workers.length === 0) { alert('You have no workers to upgrade!'); return; }
+        if (diamonds >= 20) {
+          diamonds -= 20;
+          updateCurrencyUI();
+          let upgradedCount = 0;
+          workers.forEach(w => {
+            if (w.level < 5) { w.level++; upgradedCount++; }
+          });
+          alert(`Upgraded your workers! Current active count: ${workers.length}, max level checked.`);
+        } else {
+          alert('Not enough Diamonds! You need 20 diamonds to upgrade workers.');
+        }
+      }
+
+      function payWorkers() {
+        if (workers.length === 0) { alert('No workers to pay!'); return; }
+        let totalCost = 0;
+        workers.forEach(w => { totalCost += (10 * w.level); });
+        
+        if (coins >= totalCost) {
+          coins -= totalCost;
+          updateCurrencyUI();
+          workers.forEach(w => w.unpaidCycles = 0);
+          alert(`Paid total wages of ${totalCost} coins to your workers successfully!`);
+        } else {
+          alert(`Not enough Coins! You need ${totalCost} coins to pay worker wages. Failure to pay risks livestock health!`);
+        }
+      }
 
       interactionPrompt.addEventListener('click', openDialogue);
       btnInteract.addEventListener('click', openDialogue);
@@ -454,18 +500,6 @@
       document.getElementById('modal-close').addEventListener('click', () => {
         dialogueModal.style.display = 'none';
         if (activeNpc) activeNpc.el.setAttribute('animation-mixer', 'clip: Idle_1; loop: repeat');
-      });
-
-      document.getElementById('btn-check-value').addEventListener('click', () => {
-        alert('Checking product values in your inventory...');
-      });
-
-      document.getElementById('btn-sell-product').addEventListener('click', () => {
-        if (activeNpc.type === 'agency') {
-          alert('Opening Workers Agency recruitment panel!');
-        } else {
-          alert(`Selling items to ${activeNpc.name}!`);
-        }
       });
 
       AFRAME.registerComponent('third-person-camera', {
@@ -591,7 +625,7 @@
         requestAnimationFrame(physics);
       }
 
-      physics();
+      physics(); updateCurrencyUI();
     </script>
   </body>
 </html>
