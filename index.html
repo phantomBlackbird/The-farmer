@@ -31,29 +31,28 @@
       #minimap-canvas, #minimap-overlay { width: 100%; height: 100%; display: block; position: absolute; top: 0; left: 0; }
       #minimap-overlay { z-index: 2; pointer-events: none; }
 
-      /* --- INTERACTION PROMPT & MODAL --- */
+      /* --- RELOCATED INTERACTION UI (Top-Left Highlight Box Zone) --- */
       #interaction-prompt {
-        position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
+        position: absolute; top: 18px; left: 18px;
         background: rgba(5, 20, 30, 0.9); border: 2px solid #ffd700; color: #ffd700; padding: 10px 20px;
-        border-radius: 25px; font-size: 16px; font-weight: bold; z-index: 40; display: none; cursor: pointer;
+        border-radius: 25px; font-size: 15px; font-weight: bold; z-index: 40; display: none; cursor: pointer;
         box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); align-items: center; gap: 10px; pointer-events: auto;
       }
 
       #dialogue-modal {
-        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        width: 320px; background: rgba(5, 20, 30, 0.95); border: 2px solid #00f3ff; border-radius: 12px;
-        padding: 20px; z-index: 150; display: none; flex-direction: column; gap: 15px; box-shadow: 0 0 25px rgba(0, 243, 255, 0.7);
-        color: white; font-family: sans-serif;
+        position: absolute; top: 70px; left: 18px;
+        width: 300px; background: rgba(5, 20, 30, 0.95); border: 2px solid #00f3ff; border-radius: 12px;
+        padding: 15px; z-index: 150; display: none; flex-direction: column; gap: 12px; box-shadow: 0 0 25px rgba(0, 243, 255, 0.7);
+        color: white; font-family: sans-serif; pointer-events: auto;
       }
-      #dialogue-modal h3 { margin: 0 0 5px 0; color: #00f3ff; font-size: 18px; }
-      #dialogue-modal p { margin: 0; font-size: 14px; color: #ccc; }
-      .modal-btn { background: rgba(0, 243, 255, 0.2); border: 1px solid #00f3ff; color: white; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; text-align: center; }
+      #dialogue-modal h3 { margin: 0 0 3px 0; color: #00f3ff; font-size: 16px; }
+      #dialogue-modal p { margin: 0; font-size: 13px; color: #ccc; }
+      .modal-btn { background: rgba(0, 243, 255, 0.2); border: 1px solid #00f3ff; color: white; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; text-align: center; font-size: 13px; }
       .modal-btn:hover { background: rgba(0, 243, 255, 0.5); }
-      .modal-close { background: rgba(255, 51, 51, 0.8); border: none; color: white; padding: 6px; border-radius: 6px; cursor: pointer; text-align: center; }
+      .modal-close { background: rgba(255, 51, 51, 0.8); border: none; color: white; padding: 6px; border-radius: 6px; cursor: pointer; text-align: center; font-size: 13px; }
 
       #ui-container { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 20px; box-sizing: border-box; z-index: 30; pointer-events: none; }
       .btn { width: 65px; height: 65px; border-radius: 50%; background: rgba(0, 0, 0, 0.75); color: #ffd700; border: 2px solid #ffd700; font-weight: bold; pointer-events: auto; outline: none; font-size: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 8px rgba(255, 215, 0, 0.2); }
-      #crosshair { position: absolute; top: 50%; left: 50%; width: 24px; height: 24px; transform: translate(-50%, -50%); pointer-events: none; z-index: 11; border: 2px solid #ffd700; border-radius: 50%; box-sizing: border-box; }
     </style>
   </head>
   <body>
@@ -69,7 +68,7 @@
       <canvas id="minimap-overlay" width="300" height="300"></canvas>
     </div>
 
-    <!-- INTERACTION UI -->
+    <!-- INTERACTION UI (Top-Left Box Zone) -->
     <div id="interaction-prompt"><i class="fa-solid fa-comments"></i> Tap to Interact</div>
 
     <div id="dialogue-modal">
@@ -79,8 +78,6 @@
       <div class="modal-btn" id="btn-sell-product">Sell Current Product</div>
       <div class="modal-close" id="modal-close">Close</div>
     </div>
-
-    <div id="crosshair"></div>
 
     <div id="ui-container">
       <div id="joystick-zone" style="width:120px; height:120px; pointer-events:auto;"></div>
@@ -100,7 +97,7 @@
       <a-light type="ambient" intensity="0.85"></a-light>
       <a-light type="directional" position="5 15 5" intensity="1.0"></a-light>
 
-      <!-- FARM MAP ENVIRONMENT (All Nodes Intact) -->
+      <!-- FARM MAP ENVIRONMENT -->
       <a-entity id="world" 
                 gltf-model="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/Farm%201.glb" 
                 class="environment" 
