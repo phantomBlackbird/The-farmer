@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>The Farmer - Economy & Workers</title>
+    <title>The Farmer - Worker Patrol AI</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.1/nipplejs.min.js"></script>
@@ -22,7 +22,7 @@
       .compass-line { width: 1px; height: 10px; background: #ffd700; margin-top: 2px; }
       #compass-center-indicator { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background: #ff3333; box-shadow: 0 0 6px #ff3333; z-index: 31; }
 
-      /* --- CURRENCY HUD (Placed in Highlighted Zones) --- */
+      /* --- CURRENCY HUD --- */
       #currency-hud {
         position: absolute; top: 15px; left: 20px; right: 20px; display: flex; justify-content: space-between; pointer-events: none; z-index: 32;
       }
@@ -40,7 +40,7 @@
       #minimap-canvas, #minimap-overlay { width: 100%; height: 100%; display: block; position: absolute; top: 0; left: 0; }
       #minimap-overlay { z-index: 2; pointer-events: none; }
 
-      /* --- INTERACTION UI (Top-Left Highlight Box Zone) --- */
+      /* --- INTERACTION UI --- */
       #interaction-prompt {
         position: absolute; top: 65px; left: 18px;
         background: rgba(5, 20, 30, 0.9); border: 2px solid #ffd700; color: #ffd700; padding: 10px 20px;
@@ -63,7 +63,7 @@
       #ui-container { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 20px; box-sizing: border-box; z-index: 30; pointer-events: none; }
       .btn { width: 65px; height: 65px; border-radius: 50%; background: rgba(0, 0, 0, 0.75); color: #ffd700; border: 2px solid #ffd700; font-weight: bold; pointer-events: auto; outline: none; font-size: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 8px rgba(255, 215, 0, 0.2); }
 
-      /* --- LANDSCAPE & FULLSCREEN OVERLAY STYLES --- */
+      /* --- LANDSCAPE & FULLSCREEN OVERLAY --- */
       #orientation-overlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0d1117; color: #ffffff;
         display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; text-align: center; padding: 20px; box-sizing: border-box;
@@ -77,7 +77,6 @@
   </head>
   <body>
 
-    <!-- Landscape Lock & Fullscreen Start Overlay -->
     <div id="orientation-overlay">
       <div class="phone-icon"></div>
       <h2 id="overlay-text">Please Rotate Device to Landscape</h2>
@@ -85,7 +84,6 @@
       <button id="start-btn">ENTER FULLSCREEN GAME</button>
     </div>
 
-    <!-- CURRENCY HUD -->
     <div id="currency-hud">
       <div style="display:flex; gap:10px;">
         <div class="currency-badge"><i class="fa-solid fa-coins"></i> <span id="coins-val">150</span></div>
@@ -105,7 +103,6 @@
       <canvas id="minimap-overlay" width="300" height="300"></canvas>
     </div>
 
-    <!-- INTERACTION UI (Top-Left Box Zone) -->
     <div id="interaction-prompt"><i class="fa-solid fa-comments"></i> Tap to Interact</div>
 
     <div id="dialogue-modal">
@@ -136,7 +133,6 @@
       <a-light type="ambient" intensity="0.85"></a-light>
       <a-light type="directional" position="5 15 5" intensity="1.0"></a-light>
 
-      <!-- FARM MAP ENVIRONMENT -->
       <a-entity id="world" 
                 gltf-model="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/Farm%201.glb" 
                 class="environment" 
@@ -144,18 +140,13 @@
                 node-initializer>
       </a-entity>
 
-      <!-- NPC CONTAINER -->
       <a-entity id="npcs-container">
-        <!-- Businessman Patrick at Node B -->
         <a-entity id="npc-patrick" gltf-model="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/BusinessMan-v1.glb" animation-mixer="clip: Idle_1; loop: repeat"></a-entity>
-        <!-- Dorcas precisely at Fruit Merchant Node -->
         <a-entity id="npc-fruit" gltf-model="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/AnimatedWoman-nIItLV9nxS-v1.glb" animation-mixer="clip: Idle_1; loop: repeat"></a-entity>
       </a-entity>
 
-      <!-- WORKERS CONTAINER -->
       <a-entity id="workers-container"></a-entity>
 
-      <!-- PLAYER RIG (Nathaniel / Farmer) -->
       <a-entity id="rig" position="0 0.5 0">
         <a-entity id="player-model" 
                   gltf-model="https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/Farmer-v1.glb" 
@@ -169,7 +160,6 @@
         </a-entity>
       </a-entity>
 
-      <!-- MAP CAMERA RIG -->
       <a-entity id="minimap-rig" position="0 100 0" rotation="-90 0 0">
         <a-entity id="map-camera" camera="orthographic: true; near: 0.1; far: 300; left: -30; right: 30; top: 30; bottom: -30"></a-entity>
       </a-entity>
@@ -177,17 +167,17 @@
     </a-scene>
 
     <script>
-      // --- ECONOMY & GAME STATE ---
       let coins = 150;
       let diamonds = 50;
-      let workers = []; // Array of worker objects: { id, level, el }
+      let workers = [];
+      let patrolWaypoints = []; // Stores Vector3 positions of B -> AC -> A_stores -> BA -> AB
 
       function updateCurrencyUI() {
         document.getElementById('coins-val').innerText = coins;
         document.getElementById('diamonds-val').innerText = diamonds;
       }
 
-      // --- LANDSCAPE & FULLSCREEN ENFORCEMENT LOGIC ---
+      // Fullscreen & Orientation
       const overlay = document.getElementById('orientation-overlay');
       const overlayText = document.getElementById('overlay-text');
       const overlaySubtext = document.getElementById('overlay-subtext');
@@ -222,7 +212,6 @@
       window.addEventListener('orientationchange', checkOrientation);
       checkOrientation();
 
-      // --- GAME SCRIPT ---
       let npcData = [];
       let activeNpc = null;
 
@@ -242,6 +231,9 @@
             const patrickEl = document.querySelector('#npc-patrick');
             const fruitEl = document.querySelector('#npc-fruit');
 
+            const waypointNames = ['B', 'AC', 'A_stores', 'BA', 'AB'];
+            const collectedNodes = {};
+
             mesh.traverse((node) => {
               if (node.name === 'AC' && !spawnPosSet && rigEl) {
                 const worldPos = new THREE.Vector3();
@@ -256,13 +248,25 @@
                 npcData.push({ el: patrickEl, type: 'agency', name: 'Patrick (Workers Agency)', desc: 'Hire, level up, and pay your farm workers.' });
               }
 
-              // Snapping Dorcas perfectly to Fruit Merchant Node
               if (node.name === 'Fruit_Merchant_🧑‍🌾' && fruitEl) {
                 const pos = new THREE.Vector3(); node.getWorldPosition(pos);
                 fruitEl.setAttribute('position', `${pos.x} ${pos.y} ${pos.z}`);
                 npcData.push({ el: fruitEl, type: 'fruit', name: 'Fruit Merchant (Dorcas)', desc: 'I buy fresh orchard fruits.' });
               }
+
+              // Collect Patrol Nodes
+              if (waypointNames.includes(node.name)) {
+                const pos = new THREE.Vector3();
+                node.getWorldPosition(pos);
+                collectedNodes[node.name] = pos;
+              }
             });
+
+            // Map waypoints in exact requested sequence: B -> AC -> A_stores -> BA -> AB -> B
+            waypointNames.forEach(name => {
+              if (collectedNodes[name]) patrolWaypoints.push(collectedNodes[name]);
+            });
+            if (collectedNodes['B']) patrolWaypoints.push(collectedNodes['B']); // loop back to B
           };
 
           this.el.addEventListener('model-loaded', runInit);
@@ -384,7 +388,6 @@
         overlayCtx.shadowBlur = 0;
       }
 
-      // Animations & Controls
       function playAnim(clipName, loopMode = 'repeat', timeOut = 0) {
         if (currentClip === clipName && loopMode === 'repeat' && !isBusy) return;
         playerModel.removeAttribute('animation-mixer');
@@ -406,7 +409,6 @@
 
       btnPunch.addEventListener('touchstart', (e) => { e.preventDefault(); if (!isBusy) playAnim('Punch_Right', 'once', 700); });
       
-      // Interaction Prompt Logic & Dynamic Modal Buttons
       const openDialogue = () => {
         if (!activeNpc) return;
         document.getElementById('modal-title').innerText = activeNpc.name;
@@ -440,7 +442,6 @@
         activeNpc.el.setAttribute('animation-mixer', 'clip: Interaction; loop: repeat');
       };
 
-      // Worker management actions
       function hireWorker() {
         if (diamonds >= 10) {
           diamonds -= 10;
@@ -449,16 +450,13 @@
           const workerEl = document.createElement('a-entity');
           workerEl.setAttribute('gltf-model', 'https://pub-2e89882c712d48ff82d76dcbed2769d5.r2.dev/farmersmodel/Worker-v1%20(1).glb');
           
-          // Place near Patrick's node (Node B)
-          const patrickPos = document.querySelector('#npc-patrick').getAttribute('position');
-          const offsetX = (Math.random() - 0.5) * 4;
-          const offsetZ = (Math.random() - 0.5) * 4;
-          workerEl.setAttribute('position', `${patrickPos.x + offsetX} ${patrickPos.y} ${patrickPos.z + offsetZ}`);
-          workerEl.setAttribute('animation-mixer', 'clip: Idle_1; loop: repeat');
+          const startPos = patrolWaypoints.length > 0 ? patrolWaypoints[0] : new THREE.Vector3(0, 0.5, 0);
+          workerEl.setAttribute('position', `${startPos.x} ${startPos.y} ${startPos.z}`);
+          workerEl.setAttribute('animation-mixer', 'clip: Run_Forward; loop: repeat');
           document.querySelector('#workers-container').appendChild(workerEl);
 
-          workers.push({ id: workerId, level: 1, el: workerEl, unpaidCycles: 0 });
-          alert(`Successfully hired Worker #${workerId} (Level 1)!`);
+          workers.push({ id: workerId, level: 1, el: workerEl, targetIndex: 1, unpaidCycles: 0 });
+          alert(`Successfully hired Worker #${workerId} (Level 1)! Watch him start patrolling.`);
         } else {
           alert('Not enough Diamonds! You need 10 diamonds to hire.');
         }
@@ -469,11 +467,8 @@
         if (diamonds >= 20) {
           diamonds -= 20;
           updateCurrencyUI();
-          let upgradedCount = 0;
-          workers.forEach(w => {
-            if (w.level < 5) { w.level++; upgradedCount++; }
-          });
-          alert(`Upgraded your workers! Current active count: ${workers.length}, max level checked.`);
+          workers.forEach(w => { if (w.level < 5) w.level++; });
+          alert(`Upgraded your workers! Active worker count: ${workers.length}.`);
         } else {
           alert('Not enough Diamonds! You need 20 diamonds to upgrade workers.');
         }
@@ -490,7 +485,7 @@
           workers.forEach(w => w.unpaidCycles = 0);
           alert(`Paid total wages of ${totalCost} coins to your workers successfully!`);
         } else {
-          alert(`Not enough Coins! You need ${totalCost} coins to pay worker wages. Failure to pay risks livestock health!`);
+          alert(`Not enough Coins! You need ${totalCost} coins to pay worker wages.`);
         }
       }
 
@@ -561,7 +556,7 @@
       })
       .on('end', () => { mX = 0; mZ = 0; if (gr && !isBusy) resetDefaultState(); });
 
-      // Physics & Proximity Check
+      // Physics & Worker AI Movement Loop
       const downRay = new THREE.Raycaster();
       const frontRay = new THREE.Raycaster();
 
@@ -593,15 +588,34 @@
 
         rig.setAttribute('position', curr);
 
+        // --- UPDATE WORKERS PATROL AI ---
+        if (patrolWaypoints.length > 0) {
+          workers.forEach(w => {
+            const wPos = w.el.object3D.position;
+            const target = patrolWaypoints[w.targetIndex];
+            const dir = new THREE.Vector3().subVectors(target, wPos);
+            dir.y = 0;
+            const dist = dir.length();
+
+            if (dist < 1.0) {
+              // Reached waypoint, advance to next in sequence: B -> AC -> A_stores -> BA -> AB -> B
+              w.targetIndex = (w.targetIndex + 1) % patrolWaypoints.length;
+            } else {
+              dir.normalize();
+              const speed = 0.035 * (0.8 + (w.level * 0.2)); // Higher level = slightly faster patrol
+              wPos.addScaledVector(dir, speed);
+              w.el.object3D.lookAt(target.x, wPos.y, target.z);
+            }
+          });
+        }
+
         // Check NPC Proximity (3 meters threshold)
         let foundNpc = null;
         npcData.forEach(npc => {
           const pos = npc.el.getAttribute('position');
           if (pos) {
             const dist = new THREE.Vector3(curr.x, curr.y, curr.z).distanceTo(new THREE.Vector3(pos.x, pos.y, pos.z));
-            if (dist < 3.0) {
-              foundNpc = npc;
-            }
+            if (dist < 3.0) foundNpc = npc;
           }
         });
 
