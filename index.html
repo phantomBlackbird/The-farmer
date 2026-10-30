@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>The Farmer - Worker Patrol AI</title>
+    <title>The Farmer - Realistic Sky</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.1/nipplejs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-      body { touch-action: none; user-select: none; overflow: hidden; margin: 0; background: #87CEEB; font-family: sans-serif; }
+      body { touch-action: none; user-select: none; overflow: hidden; margin: 0; background: #000; font-family: sans-serif; }
       
       #compass-bar-container {
         position: absolute; top: 15px; left: 50%; transform: translateX(-50%); width: 380px; height: 36px;
@@ -129,7 +129,7 @@
     </div>
 
     <a-scene loading-screen="enabled: false" vr-mode-ui="enabled: false">
-      <a-sky color="#87CEEB"></a-sky>
+      <!-- Blue Sky removed to let Farm 1.glb built-in sky/clouds show through -->
       <a-light type="ambient" intensity="0.85"></a-light>
       <a-light type="directional" position="5 15 5" intensity="1.0"></a-light>
 
@@ -170,14 +170,13 @@
       let coins = 150;
       let diamonds = 50;
       let workers = [];
-      let patrolWaypoints = []; // Stores Vector3 positions of B -> AC -> A_stores -> BA -> AB
+      let patrolWaypoints = [];
 
       function updateCurrencyUI() {
         document.getElementById('coins-val').innerText = coins;
         document.getElementById('diamonds-val').innerText = diamonds;
       }
 
-      // Fullscreen & Orientation
       const overlay = document.getElementById('orientation-overlay');
       const overlayText = document.getElementById('overlay-text');
       const overlaySubtext = document.getElementById('overlay-subtext');
@@ -254,7 +253,6 @@
                 npcData.push({ el: fruitEl, type: 'fruit', name: 'Fruit Merchant (Dorcas)', desc: 'I buy fresh orchard fruits.' });
               }
 
-              // Collect Patrol Nodes
               if (waypointNames.includes(node.name)) {
                 const pos = new THREE.Vector3();
                 node.getWorldPosition(pos);
@@ -262,11 +260,10 @@
               }
             });
 
-            // Map waypoints in exact requested sequence: B -> AC -> A_stores -> BA -> AB -> B
             waypointNames.forEach(name => {
               if (collectedNodes[name]) patrolWaypoints.push(collectedNodes[name]);
             });
-            if (collectedNodes['B']) patrolWaypoints.push(collectedNodes['B']); // loop back to B
+            if (collectedNodes['B']) patrolWaypoints.push(collectedNodes['B']);
           };
 
           this.el.addEventListener('model-loaded', runInit);
@@ -287,7 +284,6 @@
       let currentClip = 'Idle_1';
       let isMapFullscreen = false;
 
-      // Compass Ticks
       const compassTicksEl = document.getElementById('compass-ticks');
       const dirs = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' };
       for (let pass = 0; pass < 3; pass++) {
@@ -299,7 +295,6 @@
         }
       }
 
-      // Minimap Fullscreen Toggle
       const mapContainer = document.getElementById('minimap-container');
       const mapCloseBtn = document.getElementById('map-close-btn');
       mapContainer.addEventListener('click', () => {
@@ -314,7 +309,6 @@
         mapCloseBtn.style.display = 'none';
       });
 
-      // Live Minimap Render
       const mapCanvas = document.getElementById('minimap-canvas');
       const overlayCanvas = document.getElementById('minimap-overlay');
       const overlayCtx = overlayCanvas.getContext('2d');
@@ -556,7 +550,6 @@
       })
       .on('end', () => { mX = 0; mZ = 0; if (gr && !isBusy) resetDefaultState(); });
 
-      // Physics & Worker AI Movement Loop
       const downRay = new THREE.Raycaster();
       const frontRay = new THREE.Raycaster();
 
@@ -588,7 +581,6 @@
 
         rig.setAttribute('position', curr);
 
-        // --- UPDATE WORKERS PATROL AI ---
         if (patrolWaypoints.length > 0) {
           workers.forEach(w => {
             const wPos = w.el.object3D.position;
@@ -598,18 +590,16 @@
             const dist = dir.length();
 
             if (dist < 1.0) {
-              // Reached waypoint, advance to next in sequence: B -> AC -> A_stores -> BA -> AB -> B
               w.targetIndex = (w.targetIndex + 1) % patrolWaypoints.length;
             } else {
               dir.normalize();
-              const speed = 0.035 * (0.8 + (w.level * 0.2)); // Higher level = slightly faster patrol
+              const speed = 0.035 * (0.8 + (w.level * 0.2));
               wPos.addScaledVector(dir, speed);
               w.el.object3D.lookAt(target.x, wPos.y, target.z);
             }
           });
         }
 
-        // Check NPC Proximity (3 meters threshold)
         let foundNpc = null;
         npcData.forEach(npc => {
           const pos = npc.el.getAttribute('position');
